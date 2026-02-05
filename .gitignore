@@ -1,0 +1,34 @@
+# ===== Visual Studio =====
+.vs/
+*.user
+*.suo
+*.vcxproj.user
+*.vcxproj.filters
+
+# ===== Build outputs =====
+Debug/
+Release/
+x64/
+x86/
+out/
+bin/
+obj/
+
+# ===== Executables =====
+*.exe
+*.out
+
+# ===== Object files =====
+*.o
+*.obj
+
+# ===== Logs / temp =====
+*.log
+*.tmp
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== OTHERS ====
+
