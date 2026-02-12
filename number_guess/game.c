@@ -36,14 +36,18 @@ int* read_number(int* user_input_numbers, int number_cnt) {
 	while ((c = getchar()) != '\n' && i < number_cnt) {
 		if (c == ' ') continue;
 		if (c > 57 || 48 > c) {
-			return NULL;
+			break;
 		}
 		c -= 48;
-		if (pos[c]) return NULL; // 중복되는 경우
+		if (pos[c]) { // 중복되는 경우
+			clear_input_buffer();
+			break; 
+		}
 		user_input_numbers[i++] = c;
 		pos[c]++;
 	}
-	if (i < number_cnt) {
+	if (i < number_cnt) return NULL;
+	if (c != '\n') {
 		clear_input_buffer();
 		return NULL;
 	}
@@ -85,9 +89,17 @@ void play_alone(int number_cnt) {
 			if (regame_check[strlen(regame_check) - 1] != '\n') clear_input_buffer();
 			else regame_check[strlen(regame_check) - 1] = '\0';
 			if (!strcmp(regame_check, "re")) {
+				free(game_numbers);
 				game_numbers = make_game_numbers(number_cnt);
-				printf("\n플레이 할 숫자의 갯수를 입력해주세요.\n");
-				scanf("%d%*c", &number_cnt);
+				char str[42] = "\n플레이 할 숫자의 갯수를 입력해주세요.\n";
+				while (1) {
+					printf("%s", str);
+					scanf("%d%*c", &number_cnt);
+					if (2 <= number_cnt && number_cnt <= 10) break;
+					strcpy(str, "\n2~10 사이의 수로 정해주세요.\n");
+				}
+				free(user_input_numbers);
+				user_input_numbers = (int*)malloc(sizeof(int) * number_cnt);
 				continue;
 			} else {
 				break;
