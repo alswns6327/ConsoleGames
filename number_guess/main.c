@@ -39,7 +39,7 @@ int main(void) {
 
 void play_game(int menu) {
 	int number_cnt;
-	char str[30] = "\n숫자의 갯수를 정해주세요.\n";
+	char str[42] = "\n플레이 할 숫자의 갯수를 입력해주세요.\n";
 	while (1) {
 		printf("%s", str);
 		scanf("%d%*c", &number_cnt);

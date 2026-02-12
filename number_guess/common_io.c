@@ -20,9 +20,9 @@
 
 typedef struct {
     char config_base[256];
-    char config_forder_path[256];
+    char config_folder_path[256];
     char config_file_path[256];
-    char score_forder_path[256];
+    char score_folder_path[256];
     char score_file_path[256];
 } FileInfo;
 
@@ -32,7 +32,7 @@ int forder_exists() {
     struct stat info;
 
     // stat 함수는 성공 시 0, 실패(파일 없음 등) 시 -1 반환
-    if (stat(fileInfo.config_forder_path, &info) == 0) {
+    if (stat(fileInfo.config_folder_path, &info) == 0) {
         // 존재하는 경우, 그게 '폴더(Directory)'인지 확인
         if (info.st_mode & S_IFDIR) {
             return 1; // 폴더로 존재함
@@ -42,11 +42,11 @@ int forder_exists() {
 }
 
 int file_exists() {
-    struct stat buffer;
+    struct stat info;
     // stat 함수가 0을 반환하면 일단 무언가 존재한다는 뜻
-    if (stat(fileInfo.config_file_path, &buffer) == 0) {
+    if (stat(fileInfo.config_file_path, &info) == 0) {
         // 그게 '일반 파일(Regular File)'인지 확인
-        if (buffer.st_mode & S_IFREG) {
+        if (info.st_mode & S_IFREG) {
             return 1; // 파일이 존재함
         }
     }
@@ -55,13 +55,13 @@ int file_exists() {
 
 void init_config_file_base_path() {
     strcpy(fileInfo.config_base, getenv(DIR_ENV_NAME));
-    sprintf(fileInfo.config_forder_path, "%s/ConsoleGame/", fileInfo.config_base);
-    sprintf(fileInfo.config_file_path, "%sconfig", fileInfo.config_forder_path);
+    sprintf(fileInfo.config_folder_path, "%s/ConsoleGame/", fileInfo.config_base);
+    sprintf(fileInfo.config_file_path, "%sconfig", fileInfo.config_folder_path);
 }
 
 void check_config_forder() {
     if (forder_exists()) return;
-    mkdir(fileInfo.config_forder_path);
+    mkdir(fileInfo.config_folder_path);
 }
 
 void check_config_file() {
@@ -81,8 +81,8 @@ void check_config_file() {
             printf("\n오류가 발생하였습니다.\n");
             exit(1);
         }
-        sprintf(fileInfo.score_forder_path, "%s/ConsoleGame/", fileInfo.config_base);
-        sprintf(fileInfo.score_file_path, "%sscore", fileInfo.config_forder_path);
+        sprintf(fileInfo.score_folder_path, "%s/ConsoleGame/", fileInfo.config_base);
+        sprintf(fileInfo.score_file_path, "%sscore", fileInfo.config_folder_path);
         fwrite(&fileInfo, sizeof(FileInfo), 1, fp);
     }
     fclose(fp);
