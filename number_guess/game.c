@@ -3,6 +3,8 @@
 #include <time.h>
 #include <string.h>
 #include "common.h"
+#include "game_io.h"
+#include "security.h"
 
 typedef enum {
 	GAME_ANSWER_WRONG,
@@ -36,6 +38,7 @@ int* read_number(int* user_input_numbers, int number_cnt) {
 	while ((c = getchar()) != '\n' && i < number_cnt) {
 		if (c == ' ') continue;
 		if (c > 57 || 48 > c) {
+			clear_input_buffer();
 			break;
 		}
 		c -= 48;
@@ -74,6 +77,8 @@ void play_alone(int number_cnt) {
 	int* game_numbers = make_game_numbers(number_cnt);
 	int* user_input_numbers = (int*)malloc(sizeof(int) * number_cnt);
 	char regame_check[4];
+	char save_check[5];
+	int tryCount = 0;
 	printf("\n숫자 게임에 오신 것을 환영합니다.\n모드 : 혼자\n숫자 갯수: %d\n\n숫자는 붙여서 써도 되고 띄워서 써도 됩니다.\nex) 123 or 1 2 3 or 12 3 모두 동일합니다.\n", number_cnt);
 	while (1) {
 		printf("숫자 입력 : ");
@@ -82,9 +87,54 @@ void play_alone(int number_cnt) {
 			continue;
 		}
 		GuessResult result = make_answer(game_numbers, user_input_numbers, number_cnt);
-
+		tryCount++;
 		if (result.answer == GAME_ANSWER_CORRECT) {
-			printf("\n축하드립니다 정답을 맞추셨습니다.\n게임을 한 번 더 하시려면 're'를 입력 끝내시려면 'end'를 입력해주세요.\n");
+			printf("\n축하드립니다 %d번 만에 정답을 맞추셨습니다.\n", tryCount);
+			printf("\n게임 기록을 저장하시려면 yes를 입력 아니라면 엔터를 눌러주세요.\n");
+			fgets(save_check, sizeof(save_check), stdin);
+			if (save_check[strlen(save_check) - 1] != '\n') clear_input_buffer();
+			else save_check[strlen(save_check) - 1] = '\0';
+			if (!strcmp(save_check, "yes")) {
+				printf("\n게임 기록과 함께 저장될 닉네임을 입력해주세요.\n");
+				char nickname[22];
+				while (1) {
+					fgets(nickname, sizeof(nickname), stdin);
+					size_t len = strlen(nickname);
+					if (nickname[len - 1] != '\n') {
+						printf("\n영어 닉네임은 20자 한글 닉네임은 10자 이내로 입력해주세요.\n");
+						clear_input_buffer();
+					}
+					else {
+						nickname[len - 1] = '\0';
+						break;
+					}
+				}
+				printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+				char password[22];
+				while (1) {
+					fgets(password, sizeof(password), stdin);
+
+					size_t len = strlen(password);
+					if (password[len - 1] != '\n') {
+						printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+						clear_input_buffer();
+						continue;
+					}
+					if (has_non_ascii(password) || len < 10) {
+						printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+						continue;
+					}
+
+					password[len - 1] = '\0';
+					break;
+				}
+				ScoreInfo scoreInfo = { 0 };
+				scoreInfo.tryCount = tryCount;
+				scoreInfo.password = basic_hash(password);
+				strcpy(scoreInfo.nickname, nickname);
+				if (!save_score(scoreInfo)) printf("\n저장에 실패하였습니다.\n");
+			}
+			printf("\n게임을 한 번 더 하시려면 're'를 입력 끝내시려면 엔터를 눌러주세요.\n");
 			fgets(regame_check, sizeof(regame_check), stdin);
 			if (regame_check[strlen(regame_check) - 1] != '\n') clear_input_buffer();
 			else regame_check[strlen(regame_check) - 1] = '\0';
@@ -112,3 +162,4 @@ void play_alone(int number_cnt) {
 	free(user_input_numbers);
 	free(game_numbers);
 }
+
