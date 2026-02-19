@@ -130,14 +130,16 @@
   <ItemGroup>
     <ClCompile Include="common.c" />
     <ClCompile Include="game.c" />
-    <ClCompile Include="common_io.c" />
+    <ClCompile Include="game_io.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="security.c" />
     <ClCompile Include="viewer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
     <ClInclude Include="game.h" />
-    <ClInclude Include="common_io.h" />
+    <ClInclude Include="game_io.h" />
+    <ClInclude Include="security.h" />
     <ClInclude Include="viewer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

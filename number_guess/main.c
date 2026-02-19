@@ -1,33 +1,71 @@
 #include <stdio.h>
 #include <string.h>
 #include "game.h"
-#include "common_io.h"
+#include "game_io.h"
+#include "common.h"
 
-void play_game(int);
-void show_list(int);
+void play_game(GameMenu);
+void show_list(ShowScoreListMenu);
+void change_location(char*);
+
+typedef enum {
+	Play=1, ShowScoreList, ChangeScorePath, End
+} HighMenu;
+
+typedef enum {
+	Alone=1, VersusWithComputer
+} GameMenu;
+
+typedef enum {
+	All=1, NickName, SpecificRank, SpecificScore
+} ShowScoreListMenu;
 
 int main(void) {
 	init_config_file_base_path();
-	check_config_forder();
+	check_config_folder();
 	check_config_file();
 	while (1) {
-		int high_menu, low_menu;
+		HighMenu high_menu;
+		GameMenu game_menu;
+		ShowScoreListMenu list_menu;
+
 		printf("메뉴\n1. 게임진행\n2. 기록 보기\n3. 기록 파일 저장소 변경\n4. 종료\n");
 		scanf("%d", &high_menu);
-		if (high_menu == 4) break;
+		if (high_menu == End) break;
 		switch(high_menu){
-			case 1 :
+			case Play:
 				printf("\n1. 혼자 하기\n2. 컴퓨터와 대결\n");
-				scanf("%d", &low_menu);
-				play_game(low_menu);
+				while (1) {
+					scanf("%d", &game_menu);
+					if (game_menu == Alone || game_menu == VersusWithComputer) break;
+					else printf("\n1~2 중 하나를 선택해주세요.\n");
+				}
+				play_game(game_menu);
 				break;
-			case 2 :
+			case ShowScoreList :
 				printf("\n1. 전체 기록 보기\n2. 특정 닉네임 기록 보기\n3. 특정 순위 이상부터 보기\n4. 특정 횟수 기록 보기\n");
-				scanf("%d", &low_menu);
-				show_list(low_menu);
+				while (1) {
+					scanf("%d", &list_menu);
+					if (All <= list_menu && list_menu <= SpecificScore) break;
+					else printf("\n1~4 중 하나를 선택해주세요.\n");
+				}
+				show_list(list_menu);
 				break;
-			case 3:
-				printf("\n1. 경로를 입력해주세요.");
+			case ChangeScorePath:
+				printf("\n전체 경로를 입력해주세요.\n");
+				char str[256];
+				size_t len;
+				while (1) {
+					fgets(str, sizeof(str), stdin);
+					len = strlen(str) -1;
+					if (str[len] == '\n') {
+						str[len] = '\0';
+						break;
+					}
+					printf("\n경로의 길이가 너무 깁니다.\n256자 내로 설정해주세요.\n");
+					clear_input_buffer();
+				}
+				change_location(str);
 				break;
 			default :
 				printf("\n1~3 사이의 번호를 선택해주세요.\n");
@@ -37,7 +75,7 @@ int main(void) {
 	return 0;
 }
 
-void play_game(int menu) {
+void play_game(GameMenu game_menu) {
 	int number_cnt;
 	char str[42] = "\n플레이 할 숫자의 갯수를 입력해주세요.\n";
 	while (1) {
@@ -47,15 +85,19 @@ void play_game(int menu) {
 		strcpy(str, "\n2~10 사이의 수로 정해주세요.\n");
 	}
 
-	switch (menu) {
-		case 1: {
+	switch (game_menu) {
+		case Alone: {
 			play_alone(number_cnt);
 			break;
 		}
-		case 2: {
+		case VersusWithComputer: {
 			int level;
-			printf("\n컴퓨터의 레벨을 선택해주세요.\n");
-			scanf("%d", &level);
+			printf("\n컴퓨터의 레벨을 1~4 사이에서 선택해주세요.\n");
+			while (1) {
+				scanf("%d", &level);
+				if (1 <= level && level <= 4) break;
+				else printf("\n1~4 중 하나를 선택해주세요.\n");
+			}
 			// 컴퓨터와 게임
 			break;
 		}
@@ -64,21 +106,25 @@ void play_game(int menu) {
 		}
 	}
 }
-void show_list(int menu) {
-	switch (menu) {
-		case 1:
+void show_list(ShowScoreListMenu list_menu) {
+	switch (list_menu) {
+		case All:
 			// 기록
 			break;
-		case 2:
+		case NickName:
 			// 기록
 			break;
-		case 3:
+		case SpecificRank:
 			// 기록
 			break;
-		case 4:
+		case SpecificScore:
 			// 기록
 			break;
 		default:
 			printf("\n1~4 사이의 번호를 선택해주세요.\n");
 	}
+}
+
+void change_location(char* location) {
+
 }
