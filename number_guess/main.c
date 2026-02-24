@@ -3,6 +3,7 @@
 #include "game.h"
 #include "game_io.h"
 #include "common.h"
+#include "viewer.h"
 
 void play_game(GameMenu);
 void show_list(ShowScoreListMenu);
@@ -30,13 +31,13 @@ int main(void) {
 		ShowScoreListMenu list_menu;
 
 		printf("메뉴\n1. 게임진행\n2. 기록 보기\n3. 기록 파일 저장소 변경\n4. 종료\n");
-		scanf("%d", &high_menu);
+		scanf("%d%*c", &high_menu);
 		if (high_menu == End) break;
 		switch(high_menu){
 			case Play:
 				printf("\n1. 혼자 하기\n2. 컴퓨터와 대결\n");
 				while (1) {
-					scanf("%d", &game_menu);
+					scanf("%d%*c", &game_menu);
 					if (game_menu == Alone || game_menu == VersusWithComputer) break;
 					else printf("\n1~2 중 하나를 선택해주세요.\n");
 				}
@@ -45,11 +46,18 @@ int main(void) {
 			case ShowScoreList :
 				printf("\n1. 전체 기록 보기\n2. 특정 닉네임 기록 보기\n3. 특정 순위 이상부터 보기\n4. 특정 횟수 기록 보기\n");
 				while (1) {
-					scanf("%d", &list_menu);
+					scanf("%d%*c", &list_menu);
 					if (All <= list_menu && list_menu <= SpecificScore) break;
 					else printf("\n1~4 중 하나를 선택해주세요.\n");
 				}
-				show_list(list_menu);
+				printf("보려는 기록의 게임 플레이 시 지정한 숫자 갯수를 정해주세요. 2~10\n");
+				int number_cnt;
+				while (1) {
+					scanf("%d%*c", &number_cnt);
+					if (2 <= number_cnt && number_cnt <= 10) break;
+					else printf("\n2~10 중 하나를 선택해주세요.\n");
+				}
+				show_list(list_menu, number_cnt);
 				break;
 			case ChangeScorePath:
 				printf("\n전체 경로를 입력해주세요.\n");
@@ -94,7 +102,7 @@ void play_game(GameMenu game_menu) {
 			int level;
 			printf("\n컴퓨터의 레벨을 1~4 사이에서 선택해주세요.\n");
 			while (1) {
-				scanf("%d", &level);
+				scanf("%d%*c", &level);
 				if (1 <= level && level <= 4) break;
 				else printf("\n1~4 중 하나를 선택해주세요.\n");
 			}
@@ -106,25 +114,21 @@ void play_game(GameMenu game_menu) {
 		}
 	}
 }
-void show_list(ShowScoreListMenu list_menu) {
+void show_list(ShowScoreListMenu list_menu, int number_cnt) {
 	switch (list_menu) {
 		case All:
-			// 기록
+			view_list_all(number_cnt);
 			break;
 		case NickName:
-			// 기록
+			view_nickname_list(number_cnt);
 			break;
 		case SpecificRank:
-			// 기록
+			view_specificRank_list(number_cnt);
 			break;
 		case SpecificScore:
-			// 기록
+			view_specificScore_list(number_cnt);
 			break;
 		default:
 			printf("\n1~4 사이의 번호를 선택해주세요.\n");
 	}
-}
-
-void change_location(char* location) {
-
 }

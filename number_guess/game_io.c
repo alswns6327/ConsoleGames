@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <io.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,8 +18,8 @@
     #define MKDIR(path) mkdir(path, 0755)
     // Linux/macOS: /home/name 경로를 가져옴
     #define DIR_ENV_NAME "HOME"
+    #include <unistd.h> // Mac, Linux
 #endif
-
 typedef struct {
     char config_base[256];
     char config_folder_path[256];
@@ -97,36 +98,65 @@ void change_location(char* location) {
 
     FILE* config_fp = fopen(fileInfo.config_file_path, "wb");
     printf("\n게임 기록 파일이 %s/ConsoleGame/ 경로에 저장되며 기존 기록은 옮겨지고 기존 경로 파일은 삭제됩니다.\n", location);
-    sprintf(fileInfo.score_folder_path, "%s/ConsoleGame/", location);
+    char new_score_folder_path[256];
+    sprintf(new_score_folder_path, "%s/ConsoleGame/", location);
+    if (!folder_exists(new_score_folder_path)) MKDIR(new_score_folder_path);
     char new_score_file_path[256];
-    sprintf(new_score_file_path, "%sscore", fileInfo.score_folder_path);
-    if (file_exists(fileInfo.score_file_path)) {
-        FILE* score_fp = fopen(fileInfo.score_file_path, "rb");
-        fseek(score_fp, 0, SEEK_END);
-        int count = ftell(score_fp) / sizeof(ScoreInfo);
-        ScoreInfo* scores = (ScoreInfo*)malloc(sizeof(ScoreInfo) * count);
-        rewind(score_fp);
-        fread(scores, sizeof(ScoreInfo), count, score_fp);
-        FILE* new_score_fp = fopen(new_score_file_path, "wb");
-        if (!new_score_fp) {
-            printf("\n파일을 옮기는 과정에서 문제가 발생하였습니다.\n");
-            fclose(score_fp);
-            return;
+    char old_score_file_path[256];
+    int errorCheck = 0;
+    for (int i = 2; i < 11; i++) {
+        sprintf(new_score_file_path, "%sscore_%d", new_score_folder_path, i);
+        sprintf(old_score_file_path, "%s_%d", fileInfo.score_file_path, i);
+        if (file_exists(old_score_file_path)) {
+            FILE* old_score_fp = fopen(old_score_file_path, "rb");
+            fseek(old_score_fp, 0, SEEK_END);
+            int count = ftell(old_score_fp) / sizeof(ScoreInfo);
+            ScoreInfo* scores = (ScoreInfo*)malloc(sizeof(ScoreInfo) * count);
+            rewind(old_score_fp);
+            fread(scores, sizeof(ScoreInfo), count, old_score_fp);
+            FILE* new_score_fp = fopen(new_score_file_path, "wb");
+            if (!new_score_fp) {
+                printf("\n파일을 옮기는 과정에서 문제가 발생하였습니다.\n");
+                fclose(old_score_fp);
+                for (int j = 2; j < i; j++) {
+                    sprintf(new_score_file_path, "%sscore_%d", new_score_folder_path, i);
+                    if (file_exists(old_score_file_path)) {
+                        if (remove(old_score_file_path)) errorCheck++;
+                    }
+                }
+                rmdir(new_score_folder_path);
+                return;
+            }
+            fwrite(scores, sizeof(ScoreInfo), count, new_score_fp);
+            free(scores);
+            fclose(old_score_fp);
+            fclose(new_score_fp);
         }
-        fwrite(scores, sizeof(ScoreInfo), count, new_score_fp);
-        free(scores);
-        fclose(score_fp);
-        fclose(new_score_fp);
-        if (remove(fileInfo.score_file_path))
-            printf("\n이전 파일이 자동 삭제가 실패하여 %s 경로에 남아있으니 원하시는 경우 별도 삭제가 필요합니다.\n", fileInfo.score_file_path);
     }
-    sprintf(fileInfo.score_file_path, "%s", new_score_file_path);
+    for (int i = 2; i < 11; i++) {
+        sprintf(old_score_file_path, "%s_%d", fileInfo.score_file_path, i);
+        if (file_exists(old_score_file_path)) {
+            if (remove(old_score_file_path)) errorCheck++;
+        }
+    }
+    if (errorCheck) {
+        printf("\n에러 원인: %s\n", strerror(errno));
+        printf("\n이전 파일이 자동 삭제가 실패하여 %s 경로에 남아있으니 원하시는 경우 별도 삭제가 필요합니다.\n", fileInfo.score_file_path);
+    }
+    else printf("정상 처리 되었습니다.\n");
+    sprintf(fileInfo.score_folder_path, "%s", new_score_folder_path);
+    sprintf(fileInfo.score_file_path, "%sscore", fileInfo.score_folder_path);
     fwrite(&fileInfo, sizeof(FileInfo), 1, config_fp);
     fclose(config_fp);
 }
 
 int save_score(ScoreInfo scoreInfo) {
-    FILE* score_fp = fopen(fileInfo.score_file_path, "ab");
+    char score_file_path[256];
+    sprintf(score_file_path, "%s_%d", fileInfo.score_file_path, scoreInfo.numberCnt);
+    FILE* score_fp; 
+    if(file_exists(score_file_path)) score_fp = fopen(score_file_path, "ab");
+    else score_fp = fopen(score_file_path, "wb");
+    
     if (!score_fp) {
         printf("\n저장에 실패하였습니다.\n");
         return 0;
@@ -134,4 +164,18 @@ int save_score(ScoreInfo scoreInfo) {
     fwrite(&scoreInfo, sizeof(ScoreInfo), 1, score_fp);
     fclose(score_fp);
     return 1;
+}
+
+ScoreInfo* read_scores(int * cnt, int number_cnt) {
+    char score_file_path[256];
+    sprintf(score_file_path, "%s_%d", fileInfo.score_file_path, number_cnt);
+    FILE* score_fp = fopen(score_file_path, "rb");
+    if (!score_fp) return NULL;
+    fseek(score_fp, 0, SEEK_END);
+    *cnt = ftell(score_fp) / sizeof(ScoreInfo);
+    ScoreInfo* scores = (ScoreInfo*)malloc(sizeof(ScoreInfo) * (*cnt));
+    rewind(score_fp);
+    fread(scores, sizeof(ScoreInfo), *cnt, score_fp);
+    fclose(score_fp);
+    return scores;
 }

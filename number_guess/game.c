@@ -95,13 +95,13 @@ void play_alone(int number_cnt) {
 			if (save_check[strlen(save_check) - 1] != '\n') clear_input_buffer();
 			else save_check[strlen(save_check) - 1] = '\0';
 			if (!strcmp(save_check, "yes")) {
-				printf("\n게임 기록과 함께 저장될 닉네임을 입력해주세요.\n");
+				printf("게임 기록과 함께 저장될 닉네임을 입력해주세요.\n");
 				char nickname[22];
 				while (1) {
 					fgets(nickname, sizeof(nickname), stdin);
 					size_t len = strlen(nickname);
 					if (nickname[len - 1] != '\n') {
-						printf("\n영어 닉네임은 20자 한글 닉네임은 10자 이내로 입력해주세요.\n");
+						printf("영어 닉네임은 20자 한글 닉네임은 10자 이내로 입력해주세요.\n");
 						clear_input_buffer();
 					}
 					else {
@@ -109,19 +109,19 @@ void play_alone(int number_cnt) {
 						break;
 					}
 				}
-				printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+				printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
 				char password[22];
 				while (1) {
 					fgets(password, sizeof(password), stdin);
 
 					size_t len = strlen(password);
 					if (password[len - 1] != '\n') {
-						printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+						printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
 						clear_input_buffer();
 						continue;
 					}
 					if (has_non_ascii(password) || len < 10) {
-						printf("\n10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+						printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
 						continue;
 					}
 
@@ -130,8 +130,12 @@ void play_alone(int number_cnt) {
 				}
 				ScoreInfo scoreInfo = { 0 };
 				scoreInfo.tryCount = tryCount;
+				scoreInfo.numberCnt = number_cnt;
 				scoreInfo.password = basic_hash(password);
 				strcpy(scoreInfo.nickname, nickname);
+				scoreInfo.time = time(NULL);
+				
+				strftime(scoreInfo.datetime, sizeof(scoreInfo.datetime), "%Y-%m-%d %H:%M:%S", localtime(&scoreInfo.time));
 				if (!save_score(scoreInfo)) printf("\n저장에 실패하였습니다.\n");
 			}
 			printf("\n게임을 한 번 더 하시려면 're'를 입력 끝내시려면 엔터를 눌러주세요.\n");
@@ -140,7 +144,6 @@ void play_alone(int number_cnt) {
 			else regame_check[strlen(regame_check) - 1] = '\0';
 			if (!strcmp(regame_check, "re")) {
 				free(game_numbers);
-				game_numbers = make_game_numbers(number_cnt);
 				char str[42] = "\n플레이 할 숫자의 갯수를 입력해주세요.\n";
 				while (1) {
 					printf("%s", str);
@@ -148,6 +151,7 @@ void play_alone(int number_cnt) {
 					if (2 <= number_cnt && number_cnt <= 10) break;
 					strcpy(str, "\n2~10 사이의 수로 정해주세요.\n");
 				}
+				game_numbers = make_game_numbers(number_cnt);
 				free(user_input_numbers);
 				user_input_numbers = (int*)malloc(sizeof(int) * number_cnt);
 				continue;
