@@ -101,8 +101,11 @@ void play_alone(int number_cnt) {
 					fgets(nickname, sizeof(nickname), stdin);
 					size_t len = strlen(nickname);
 					if (nickname[len - 1] != '\n') {
-						printf("영어 닉네임은 20자 한글 닉네임은 10자 이내로 입력해주세요.\n");
+						printf("영어 닉네임은 3~20자 한글 닉네임은 3~10자 사이로 입력해주세요.\n");
 						clear_input_buffer();
+					}
+					else if (len < 3) {
+						printf("영어 닉네임은 3~20자 한글 닉네임은 3~10자 사이로 입력해주세요.\n");
 					}
 					else {
 						nickname[len - 1] = '\0';

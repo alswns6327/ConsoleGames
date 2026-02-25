@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include "common.h"
 #include "game_io.h"
+#include "security.h"
 
 
 #ifdef _WIN32
@@ -90,7 +91,20 @@ void check_config_file() {
     fclose(fp);
 }
 
-void change_location(char* location) {
+void change_location(void) {
+    printf("\n전체 경로를 입력해주세요.\n");
+    char location[256];
+    size_t len;
+    while (1) {
+        fgets(location, sizeof(location), stdin);
+        len = strlen(location) - 1;
+        if (location[len] == '\n') {
+            location[len] = '\0';
+            break;
+        }
+        printf("\n경로의 길이가 너무 깁니다.\n256자 내로 설정해주세요.\n");
+        clear_input_buffer();
+    }
     if (!folder_exists(location)) {
         printf("\n존재하지 않는 경로입니다.\n");
         return;
@@ -173,9 +187,90 @@ ScoreInfo* read_scores(int * cnt, int number_cnt) {
     if (!score_fp) return NULL;
     fseek(score_fp, 0, SEEK_END);
     *cnt = ftell(score_fp) / sizeof(ScoreInfo);
+    if (*cnt == 0) {
+        fclose(score_fp);
+        return NULL;
+    }
     ScoreInfo* scores = (ScoreInfo*)malloc(sizeof(ScoreInfo) * (*cnt));
+    if (!scores) {
+        fclose(score_fp);
+        return NULL;
+    }
     rewind(score_fp);
     fread(scores, sizeof(ScoreInfo), *cnt, score_fp);
     fclose(score_fp);
     return scores;
+}
+
+void delete_score(int number_cnt) {
+    int list_cnt;
+    ScoreInfo* scores = read_scores(&list_cnt, number_cnt);
+    if (list_cnt == 0) {
+        printf("\n삭제할 기록이 없습니다.\n");
+        return;
+    }
+
+    printf("삭제할 기록의 닉네임을 입력해주세요.\n");
+    char nickname[22];
+    while (1) {
+        fgets(nickname, sizeof(nickname), stdin);
+        size_t len = strlen(nickname);
+        if (nickname[len - 1] != '\n') {
+            printf("영어 닉네임은 3~20자 한글 닉네임은 3~10자 사이로 입력해주세요.\n");
+            clear_input_buffer();
+        }
+        else if (len < 3) {
+            printf("영어 닉네임은 3~20자 한글 닉네임은 3~10자 사이로 입력해주세요.\n");
+        }
+        else {
+            nickname[len - 1] = '\0';
+            break;
+        }
+    }
+    printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+    char password[22];
+    while (1) {
+        fgets(password, sizeof(password), stdin);
+
+        size_t len = strlen(password);
+        if (password[len - 1] != '\n') {
+            printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+            clear_input_buffer();
+            continue;
+        }
+        if (has_non_ascii(password) || len < 10) {
+            printf("10자 이상 20자 이하의 영문/숫자로 된 password를 입력해주세요.\n");
+            continue;
+        }
+
+        password[len - 1] = '\0';
+        break;
+    }
+    long long encryp_password = basic_hash(password);
+    int idx = -1;
+    for (int i = 0; i < list_cnt; i++) {
+        if (scores[i].password == encryp_password && strcmp(scores[i].nickname, nickname) == 0) {
+            idx = i;
+            break;
+        }
+    }
+
+    if (idx == -1) {
+        printf("\n정보와 일치하는 기록이 존재하지 않습니다.\n");
+        return;
+    }
+
+    qsort(scores, list_cnt, sizeof(ScoreInfo), compare_ascending);
+    printf("%d위 %s, 시도 횟수: %d\n날짜: %s의 기록을 삭제합니다.\n\n", idx + 1, scores[idx].nickname, scores[idx].tryCount, scores[idx].datetime);
+    char score_file_path[256];
+    sprintf(score_file_path, "%s_%d", fileInfo.score_file_path, number_cnt);
+    FILE* score_fp = fopen(score_file_path, "wb");
+    if (score_fp) {
+        for (int i = 0; i < list_cnt; i++) {
+            fwrite(&scores[i], sizeof(ScoreInfo), 1, score_fp);
+        }
+        fclose(score_fp);
+        printf("삭제에 성공하였습니다.\n");
+    }
+    free(scores);
 }

@@ -7,10 +7,9 @@
 
 void play_game(GameMenu);
 void show_list(ShowScoreListMenu);
-void change_location(char*);
 
 typedef enum {
-	Play=1, ShowScoreList, ChangeScorePath, End
+	Play=1, ShowScoreList, End
 } HighMenu;
 
 typedef enum {
@@ -18,7 +17,7 @@ typedef enum {
 } GameMenu;
 
 typedef enum {
-	All=1, NickName, SpecificRank, SpecificScore
+	All=1, NickName, SpecificRank, SpecificScore, ChangeScorePath, DeleteScore
 } ShowScoreListMenu;
 
 int main(void) {
@@ -30,7 +29,7 @@ int main(void) {
 		GameMenu game_menu;
 		ShowScoreListMenu list_menu;
 
-		printf("메뉴\n1. 게임진행\n2. 기록 보기\n3. 기록 파일 저장소 변경\n4. 종료\n");
+		printf("메뉴\n1. 게임진행\n2. 기록\n3. 종료\n");
 		scanf("%d%*c", &high_menu);
 		if (high_menu == End) break;
 		switch(high_menu){
@@ -44,36 +43,24 @@ int main(void) {
 				play_game(game_menu);
 				break;
 			case ShowScoreList :
-				printf("\n1. 전체 기록 보기\n2. 특정 닉네임 기록 보기\n3. 특정 순위 이상부터 보기\n4. 특정 횟수 기록 보기\n");
+				printf("\n1. 전체 기록 보기\n2. 특정 닉네임 기록 보기\n3. 특정 순위 이상부터 보기\n4. 특정 기록 보기\n5. 기록 파일 저장소 변경\n6. 기록 삭제\n");
 				while (1) {
 					scanf("%d%*c", &list_menu);
-					if (All <= list_menu && list_menu <= SpecificScore) break;
-					else printf("\n1~4 중 하나를 선택해주세요.\n");
+					if (All <= list_menu && list_menu <= DeleteScore) break;
+					else printf("\n1~6 중 하나를 선택해주세요.\n");
 				}
-				printf("보려는 기록의 게임 플레이 시 지정한 숫자 갯수를 정해주세요. 2~10\n");
+				if (ChangeScorePath == list_menu) {
+					show_list(list_menu, 0);
+					break;
+				}
 				int number_cnt;
+				printf("기록의 게임 플레이 시 지정한 숫자 갯수를 입력해주세요. 2~10\n");
 				while (1) {
 					scanf("%d%*c", &number_cnt);
 					if (2 <= number_cnt && number_cnt <= 10) break;
 					else printf("\n2~10 중 하나를 선택해주세요.\n");
 				}
 				show_list(list_menu, number_cnt);
-				break;
-			case ChangeScorePath:
-				printf("\n전체 경로를 입력해주세요.\n");
-				char str[256];
-				size_t len;
-				while (1) {
-					fgets(str, sizeof(str), stdin);
-					len = strlen(str) -1;
-					if (str[len] == '\n') {
-						str[len] = '\0';
-						break;
-					}
-					printf("\n경로의 길이가 너무 깁니다.\n256자 내로 설정해주세요.\n");
-					clear_input_buffer();
-				}
-				change_location(str);
 				break;
 			default :
 				printf("\n1~3 사이의 번호를 선택해주세요.\n");
@@ -128,6 +115,11 @@ void show_list(ShowScoreListMenu list_menu, int number_cnt) {
 		case SpecificScore:
 			view_specificScore_list(number_cnt);
 			break;
+		case ChangeScorePath:
+			change_location();
+			break;
+		case DeleteScore:
+			delete_score(number_cnt);
 		default:
 			printf("\n1~4 사이의 번호를 선택해주세요.\n");
 	}

@@ -21,6 +21,7 @@ typedef struct {
 void init_config_file_base_path();
 void check_config_folder();
 void check_config_file();
-void change_location(char* location);
+void change_location(void);
 int save_score(ScoreInfo);
+void delete_score(int number_cnt);
 ScoreInfo* read_scores(int * cnt, int number_cnt);
