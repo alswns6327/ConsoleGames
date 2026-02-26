@@ -36,3 +36,7 @@ int compare_descending(const void* score1, const void* score2) {
 
 	return 0;
 }
+
+int big_rand() {
+	return (rand() << 15) | rand();
+}
