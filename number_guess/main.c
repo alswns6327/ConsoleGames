@@ -93,7 +93,7 @@ void play_game(GameMenu game_menu) {
 				if (1 <= level && level <= 4) break;
 				else printf("\n1~4 중 하나를 선택해주세요.\n");
 			}
-			// 컴퓨터와 게임
+			play_game_with_computer(level, number_cnt);
 			break;
 		}
 		default: {

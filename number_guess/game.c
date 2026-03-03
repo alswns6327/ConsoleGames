@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 #include "common.h"
 #include "game_io.h"
 #include "security.h"
@@ -22,10 +23,13 @@ static char* make_game_numbers(int number_cnt);
 static char* read_number(char* user_input_numbers, int number_cnt);
 static GuessResult make_answer(char* game_numbers, char* user_input_numbers, int number_cnt);
 static void play_user(int number_cnt, int* tryCount);
-static void play_computer(int number_cnt, int* tryCount);
+static void play_computer(int number_cnt, int* tryCount, int level);
 static void make_answer_yes_no(char* answer);
-static void game(char* player, int number_cnt, int* tryCount);
+static void game(char* player, int number_cnt, int* tryCount, int level);
 static void make_numbers_list(char** list, char* temp, int* visited, int* row, int depth, int number_cnt);
+static GuessResult parse_user_answer(char* user_answer, int number_cnt);
+static void filter_candidates(char** numbers_list, int number_cnt, int random_idx, int* current_size, GuessResult result);
+static int find_best_guess_index(char** numbers_list, int number_cnt, int current_size);
 
 static char* make_game_numbers(int number_cnt) {
 	char numbers[10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -97,7 +101,6 @@ static void play_user(int number_cnt, int* tryCount) {
 		result = make_answer(game_numbers, user_input_numbers, number_cnt);
 		(*tryCount)++;
 		if (result.answer == GAME_ANSWER_CORRECT) {
-			printf("\n축하드립니다 %d번 만에 정답을 맞추셨습니다.\n", *tryCount);
 			break;
 		}
 		printf("%dS %dB\n", result.strike_cnt, result.ball_cnt);
@@ -183,8 +186,9 @@ void play_alone(int number_cnt) {
 	}
 }
 
-static void play_computer(int number_cnt, int* tryCount) {
+static void play_computer(int number_cnt, int* tryCount, int level) {
 	int size = 1;
+	*tryCount = 0;
 	for (int i = 0; i < number_cnt; i++) {
 		size *= 10 - i;
 	}
@@ -207,10 +211,133 @@ static void play_computer(int number_cnt, int* tryCount) {
 	int visited[10] = { 0 };
 	char temp[10];
 	make_numbers_list(numbers_list, temp, visited, &row, 0, number_cnt);
-	//while (1) {
-	//	int random_idx = big_rand() % size;
-	//	for (int i = 0; i < number_cnt; i++) printf("%d", numbers_list[random_idx][i]);
-	//}
+
+	char answer[10];
+	size_t len;
+	int current_size = size;
+	int random_idx = 0;
+	while (1) {
+		char ready[5];
+		printf("\n준비가 되시면 yes를 입력해주세요.\n");
+		make_answer_yes_no(ready);
+		if (strcmp(ready, "yes") == 0) break;
+	}
+	while (1) {
+		if (current_size == 0) {
+			printf("답변 오류");
+			*tryCount = -1;
+		}
+		printf("\n입력중...");
+		fflush(stdout);
+		random_idx = (level == 4 || (level == 3 && (*tryCount) % 2)) ? find_best_guess_index(numbers_list, number_cnt, current_size) : (big_rand() % current_size);
+		printf("\r숫자: ");
+		for (int i = 0; i < number_cnt; i++) printf("%d", numbers_list[random_idx][i]);
+		printf("          \n");
+		GuessResult result;
+		while (1) {
+			fgets(answer, sizeof(answer), stdin);
+			len = strlen(answer);
+			if (answer[len - 1] != '\n') {
+				printf("\n1s 2b와 같은 형식으로 입력해주세요.");
+				clear_input_buffer();
+				continue;
+			}
+			answer[len - 1] = '\0';
+			result = parse_user_answer(answer, number_cnt);
+			if (result.strike_cnt == -1) 
+				printf("\n형식에 맞는 응답을 해주세요.");
+			else 
+				break;
+			
+		}
+		(*tryCount)++;
+		if (result.answer == GAME_ANSWER_CORRECT) {
+			break;
+		}
+		if (level != 1 || (*tryCount) % 2)
+			filter_candidates(numbers_list, number_cnt, random_idx, &current_size, result);
+		else {
+			char* t = numbers_list[current_size - 1];
+			numbers_list[current_size - 1] = numbers_list[random_idx];
+			numbers_list[random_idx] = t;
+			current_size--;
+		}
+	}
+
+	for (int i = 0; i < size; i++) free(numbers_list[i]);
+	free(numbers_list);
+}
+static int find_best_guess_index(char** numbers_list, int number_cnt, int current_size) {
+	if (current_size <= 2) return 0;
+
+	int idx = 0, score_map[11][11] = { 0 }, min_max_case = 2147483647, max_remaining;
+	int sample_limit = (current_size > 1000) ? 1000 : current_size;
+	GuessResult result;
+	for (int i = 0; i < sample_limit; i++) {
+		max_remaining = 0;
+		int score_map[11][11] = { 0 };
+		for (int j = 0; j < current_size; j++) {
+			result = make_answer(numbers_list[i], numbers_list[j], number_cnt);
+			score_map[result.strike_cnt][result.ball_cnt]++;
+		}
+		for (int s = 0; s <= number_cnt; s++)
+			for (int b = 0; b <= number_cnt; b++)
+				if (score_map[s][b] > max_remaining) max_remaining = score_map[s][b];
+
+		if (max_remaining < min_max_case) {
+			idx = i;
+			min_max_case = max_remaining;
+		}
+	}
+	return idx;
+}
+
+static void filter_candidates (char** numbers_list, int number_cnt, int random_idx, int* current_size, GuessResult result) {
+	int strike, ball;
+	int pos[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+	char* t;
+	for (int i = 0; i < number_cnt; i++) pos[numbers_list[random_idx][i]] = i;
+
+
+	for (int i = 0; i < *current_size; i++) {
+		strike = ball = 0;
+		for (int j = 0; j < number_cnt; j++) {
+			if (pos[numbers_list[i][j]] == -1) continue;
+
+			if (pos[numbers_list[i][j]] == j) strike++;
+			else ball++;
+		}
+		if (result.strike_cnt != strike || result.ball_cnt != ball) {
+			t = numbers_list[i];
+			numbers_list[i] = numbers_list[*current_size - 1];
+			numbers_list[*current_size - 1] = t;
+			(*current_size)--;
+			i--;
+		}
+	}
+}
+
+static GuessResult parse_user_answer(char* user_answer, int number_cnt) {
+	GuessResult result = { -1, -1, GAME_ANSWER_WRONG };
+	int num = 0;
+	while (*user_answer != '\0') {
+		if (isdigit(*user_answer)) {
+			num = (num * 10) + *user_answer - '0';
+		}
+		else if (tolower(*user_answer) == 's') {
+			result.strike_cnt = num;
+			num = 0;
+		}
+		else if (tolower(*user_answer) == 'b') {
+			result.ball_cnt = num;
+			num = 0;
+		}
+		user_answer++;
+	}
+	if (result.strike_cnt == -1 || result.ball_cnt == -1 || (result.strike_cnt + result.ball_cnt > number_cnt)) result.strike_cnt = -1;
+	else if (result.strike_cnt == number_cnt && result.ball_cnt == 0) result.answer = GAME_ANSWER_CORRECT;
+
+	return result;
 }
 
 static void make_numbers_list(char** list, char* temp, int* visited, int* row, int depth, int number_cnt) {
@@ -250,8 +377,10 @@ void play_game_with_computer(int level, int number_cnt) {
 			play_order[1] = "user";
 		}
 		int index = 0;
-		game(play_order[index++], number_cnt, &userTryCount);
-		game(play_order[index], number_cnt, &computerTryCount);
+		int isUserTurn = strcmp(play_order[index], "user") == 0;
+		game(play_order[index++], number_cnt, isUserTurn ? &userTryCount : &computerTryCount, isUserTurn ? 0 : level);
+		isUserTurn = strcmp(play_order[index], "user") == 0;
+		game(play_order[index], number_cnt, isUserTurn ? &userTryCount : &computerTryCount, isUserTurn ? 0 : level);
 
 		if (userTryCount == -1 || computerTryCount == -1) {
 			printf("\n오류가 발생하였습니다.\n개발자에게 문의 부탁드립니다. 죄송합니다");
@@ -268,16 +397,16 @@ void play_game_with_computer(int level, int number_cnt) {
 	}
 }
 
-static void game(char* player, int number_cnt, int* tryCount) {
+static void game(char* player, int number_cnt, int* tryCount, int level) {
 	if (!strcmp(player, "user")) play_user(number_cnt, tryCount);
-	else play_computer(number_cnt, tryCount);
+	else play_computer(number_cnt, tryCount, level);
 }
 
 static void make_answer_yes_no(char* answer) {
 	size_t len;
 	int check;
 	while (1) {
-		fgets(answer, sizeof(answer), stdout);
+		fgets(answer, sizeof(answer), stdin);
 		len = strlen(answer);
 		check = 1;
 		if (answer[len - 1] != '\n') {
