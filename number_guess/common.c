@@ -43,7 +43,7 @@ int big_rand() {
 
 void input_number(int* num, int min, int max) {
 	while (1) {	
-		if (scanf("%d%*c", num) != 1) {
+		if (scanf("%d", num) != 1) {
 			printf("\n숫자만 입력 가능합니다.\n");
 			clear_input_buffer();
 			continue;
@@ -51,6 +51,7 @@ void input_number(int* num, int min, int max) {
 		if (*num < min || *num > max) printf("\n%d~%d 사이의 수를 입력해주세요.\n", min, max);
 		else break;
 	}
+	clear_input_buffer();
 }
 
 void make_answer_yes_no(char* answer) {
