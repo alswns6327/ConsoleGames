@@ -6,7 +6,7 @@
 #include "viewer.h"
 
 void play_game(GameMenu);
-void show_list(ShowScoreListMenu);
+void show_list(ShowScoreListMenu, int);
 
 typedef enum {
 	Play=1, ShowScoreList, End
