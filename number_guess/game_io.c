@@ -261,13 +261,21 @@ void delete_score(int number_cnt) {
     }
 
     qsort(scores, list_cnt, sizeof(ScoreInfo), compare_ascending);
-    printf("%d위 %s, 시도 횟수: %d\n날짜: %s의 기록을 삭제합니다.\n\n", idx + 1, scores[idx].nickname, scores[idx].tryCount, scores[idx].datetime);
+    printf("%d위 %s, 시도 횟수: %d\n날짜: %s의 기록을 삭제하시겠습니까(yes or no)\n", idx + 1, scores[idx].nickname, scores[idx].tryCount, scores[idx].datetime);
+    char delCheck[5];
+    make_answer_yes_no(delCheck);
+    if (!strcmp(delCheck, "no")) {
+        printf("삭제에 취소합니다.\n");
+        free(scores);
+        return;
+    }
+
     char score_file_path[256];
     sprintf(score_file_path, "%s_%d", fileInfo.score_file_path, number_cnt);
     FILE* score_fp = fopen(score_file_path, "wb");
     if (score_fp) {
         for (int i = 0; i < list_cnt; i++) {
-            fwrite(&scores[i], sizeof(ScoreInfo), 1, score_fp);
+            if(idx != i) fwrite(&scores[i], sizeof(ScoreInfo), 1, score_fp);
         }
         fclose(score_fp);
         printf("삭제에 성공하였습니다.\n");

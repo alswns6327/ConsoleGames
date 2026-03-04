@@ -69,15 +69,8 @@ void view_specificRank_list(int number_cnt) {
 	}
 	printf("\n검색할 랭킹을 입력해주세요.\n");
 	int ranking;
-	while (1) {
-		scanf("%d%*c", &ranking);
-		if (ranking < 1) {
-			printf("1~%d 사이의 값으로 입력해주세요.\n", list_cnt);
-		}
-		else {
-			break;
-		}
-	}
+	input_number(&ranking, 1, list_cnt);
+	
 	printf("----------------------------------------------\n");
 	for (int i = ranking -1; i < list_cnt; i++) {
 			printf("%d위 %s, 시도 횟수: %d\n날짜: %s\n\n", i + 1, scores[i].nickname, scores[i].tryCount, scores[i].datetime);
@@ -96,15 +89,8 @@ void view_specificScore_list(int number_cnt) {
 	min = scores[0].tryCount, max = scores[list_cnt - 1].tryCount;
 	printf("\n검색할 시도 횟수를 입력해주세요.\n");
 	int score;
-	while (1) {
-		scanf("%d%*c", &score);
-		if (score < min || score > max) {
-			printf("%d~%d 사이의 값으로 입력해주세요.\n", min, max);
-		}
-		else {
-			break;
-		}
-	}
+	input_number(&score, min, max);
+	
 	printf("----------------------------------------------\n");
 	for (int i = 0; i < list_cnt; i++) {
 		if (scores[i].tryCount > score) break;

@@ -31,7 +31,6 @@ static char* read_number(char* user_input_numbers, int number_cnt);
 static GuessResult make_answer(char* game_numbers, char* user_input_numbers, int number_cnt);
 static void play_user(int number_cnt, int* tryCount);
 static void play_computer(int number_cnt, int* tryCount, int level);
-static void make_answer_yes_no(char* answer);
 static void game(char* player, int number_cnt, int* tryCount, int level);
 static void make_numbers_list(char** list, char* temp, int* visited, int* row, int depth, int number_cnt);
 static GuessResult parse_user_answer(char* user_answer, int number_cnt);
@@ -182,12 +181,7 @@ void play_alone(int number_cnt) {
 		else regame_check[strlen(regame_check) - 1] = '\0';
 		if (!strcmp(regame_check, "re")) {
 			char str[42] = "\n플레이 할 숫자의 갯수를 입력해주세요.\n";
-			while (1) {
-				printf("%s", str);
-				scanf("%d%*c", &number_cnt);
-				if (2 <= number_cnt && number_cnt <= 10) break;
-				strcpy(str, "\n2~10 사이의 수로 정해주세요.\n");
-			}
+			input_number(&number_cnt, 2, 10);
 			continue;
 		} else {
 			break;
@@ -249,12 +243,7 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 			}
 			printf("잘못된 응답의 순번을 입력해주세요.\n");
 			int wrongIdx;
-			while (1) {
-				printf("순번: ");
-				scanf("%d%*c", &wrongIdx);
-				if (wrongIdx < 1 || wrongIdx > *tryCount) printf("\n위의 순번 내에서 선택해주세요.\n");
-				else break;
-			}
+			input_number(&wrongIdx, 1, *tryCount);
 			row = 0;
 			current_size = size;
 			make_numbers_list(numbers_list, temp, visited, &row, 0, number_cnt);
@@ -450,34 +439,4 @@ void play_game_with_computer(int level, int number_cnt) {
 static void game(char* player, int number_cnt, int* tryCount, int level) {
 	if (!strcmp(player, "user")) play_user(number_cnt, tryCount);
 	else play_computer(number_cnt, tryCount, level);
-}
-
-static void make_answer_yes_no(char* answer) {
-	size_t len;
-	int check;
-	while (1) {
-		fgets(answer, sizeof(answer), stdin);
-		len = strlen(answer);
-		check = 1;
-		if (answer[len - 1] != '\n') {
-			check = 0;
-			clear_input_buffer();
-		}
-		else if (len < 3) check = 0;
-		else answer[len - 1] = '\0';
-
-		if (!check) {
-			printf("\nyes or no를 입력해주세요.\n");
-			continue;
-		}
-
-		for (int i = 0; i < len - 1; i++) {
-			if (answer[i] < 97) answer[i] += 32;
-		}
-		if (strcmp(answer, "yes") * strcmp(answer, "no")) {
-			printf("\nyes or no를 입력해주세요.\n");
-			continue;
-		}
-		else break;
-	}
 }
