@@ -19,6 +19,13 @@ typedef struct {
 	GameAnswer answer;
 } GuessResult;
 
+typedef struct {
+	int strike_cnt;
+	int ball_cnt;
+	int idx;
+	char guessed_numbers[10];
+} GameHistory;
+
 static char* make_game_numbers(int number_cnt);
 static char* read_number(char* user_input_numbers, int number_cnt);
 static GuessResult make_answer(char* game_numbers, char* user_input_numbers, int number_cnt);
@@ -92,6 +99,7 @@ static void play_user(int number_cnt, int* tryCount) {
 	char* user_input_numbers = (char*)malloc(sizeof(char) * number_cnt);
 	*tryCount = 0;
 	GuessResult result;
+	printf("\n숫자를 입력해주세요.\n");
 	while (1) {
 		printf("숫자 입력 : ");
 		if (read_number(user_input_numbers, number_cnt) == NULL) {
@@ -105,6 +113,7 @@ static void play_user(int number_cnt, int* tryCount) {
 		}
 		printf("%dS %dB\n", result.strike_cnt, result.ball_cnt);
 	}
+	printf("\n정답입니다 %d번만에 맞추셨네요!\n", *tryCount);
 	free(game_numbers);
 	free(user_input_numbers);
 }
@@ -216,6 +225,7 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 	size_t len;
 	int current_size = size;
 	int random_idx = 0;
+	GameHistory history[100];
 	while (1) {
 		char ready[5];
 		printf("\n준비가 되시면 yes를 입력해주세요.\n");
@@ -224,8 +234,43 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 	}
 	while (1) {
 		if (current_size == 0) {
-			printf("답변 오류");
-			*tryCount = -1;
+			printf("\n응답에 오류가 있는 것 같습니다.\n");
+			for (int i = 0; i < *tryCount; i++) {
+				printf("%d. 숫자 : ", i + 1);
+				for (int j = 0; j < number_cnt; j++) printf("%d", history[i].guessed_numbers[j]);
+				printf("\n응답 : %dS %dB\n\n", history[i].strike_cnt, history[i].ball_cnt);
+			}
+			printf("잘못된 부분이 있나요?(yes or no)\n");
+			char isWrong[5];
+			make_answer_yes_no(isWrong);
+			if (!strcmp(isWrong, "no")) {
+				*tryCount = -1;
+				break;
+			}
+			printf("잘못된 응답의 순번을 입력해주세요.\n");
+			int wrongIdx;
+			while (1) {
+				printf("순번: ");
+				scanf("%d%*c", &wrongIdx);
+				if (wrongIdx < 1 || wrongIdx > *tryCount) printf("\n위의 순번 내에서 선택해주세요.\n");
+				else break;
+			}
+			row = 0;
+			current_size = size;
+			make_numbers_list(numbers_list, temp, visited, &row, 0, number_cnt);
+			for (int i = 0; i < wrongIdx-1; i++) {
+				GuessResult result = { history[i].strike_cnt, history[i].ball_cnt, GAME_ANSWER_WRONG };
+				if (level != 1 || (i) % 2)
+					filter_candidates(numbers_list, number_cnt, history[i].idx, &current_size, result);
+				else {
+					char* t = numbers_list[current_size - 1];
+					numbers_list[current_size - 1] = numbers_list[history[i].idx];
+					numbers_list[history[i].idx] = t;
+					current_size--;
+				}
+			}
+			*tryCount = wrongIdx - 1;
+			printf("\n해당 부분으로 초기화 되었습니다.\n");
 		}
 		printf("\n입력중...");
 		fflush(stdout);
@@ -238,7 +283,7 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 			fgets(answer, sizeof(answer), stdin);
 			len = strlen(answer);
 			if (answer[len - 1] != '\n') {
-				printf("\n1s 2b와 같은 형식으로 입력해주세요.");
+				printf("\n1S 2B와 같은 형식으로 입력해주세요.");
 				clear_input_buffer();
 				continue;
 			}
@@ -246,9 +291,14 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 			result = parse_user_answer(answer, number_cnt);
 			if (result.strike_cnt == -1) 
 				printf("\n형식에 맞는 응답을 해주세요.");
-			else 
+			else {
+				for (int i = 0; i < number_cnt; i++)
+					history[*tryCount].guessed_numbers[i] = numbers_list[random_idx][i];
+				history[*tryCount].strike_cnt = result.strike_cnt;
+				history[*tryCount].ball_cnt = result.ball_cnt;
+				history[*tryCount].idx = random_idx;
 				break;
-			
+			}
 		}
 		(*tryCount)++;
 		if (result.answer == GAME_ANSWER_CORRECT) {
@@ -263,7 +313,7 @@ static void play_computer(int number_cnt, int* tryCount, int level) {
 			current_size--;
 		}
 	}
-
+	printf("\n정답이군요 %d번만에 맞추었습니다!\n", *tryCount);
 	for (int i = 0; i < size; i++) free(numbers_list[i]);
 	free(numbers_list);
 }
@@ -324,11 +374,11 @@ static GuessResult parse_user_answer(char* user_answer, int number_cnt) {
 		if (isdigit(*user_answer)) {
 			num = (num * 10) + *user_answer - '0';
 		}
-		else if (tolower(*user_answer) == 's') {
+		else if (toupper(*user_answer) == 'S') {
 			result.strike_cnt = num;
 			num = 0;
 		}
-		else if (tolower(*user_answer) == 'b') {
+		else if (toupper(*user_answer) == 'B') {
 			result.ball_cnt = num;
 			num = 0;
 		}
@@ -358,7 +408,7 @@ static void make_numbers_list(char** list, char* temp, int* visited, int* row, i
 
 void play_game_with_computer(int level, int number_cnt) {
 	printf("\n대결 모드에 오신 것을 환영합니다.\nlevel: %d, 숫자 갯수: %d", level, number_cnt);
-	printf("\n응답은 2s 1b과 같이 답해주시면 되며 스트라이크의 갯수가 게임의 숫자 갯수와 동일한 경우 맞춘 것으로 간주합니다.\n");
+	printf("\n응답은 2S 1B과 같이 답해주시면 되며 스트라이크의 갯수가 게임의 숫자 갯수와 동일한 경우 맞춘 것으로 간주합니다.\n");
 	printf("\n먼저 맞추시겠어요?(yes or no)\n");
 	char answer[5];
 	while (1) {
