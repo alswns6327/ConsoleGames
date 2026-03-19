@@ -105,6 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,12 +131,14 @@
     <ClCompile Include="game.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="map.c" />
+    <ClCompile Include="my_common.c" />
     <ClCompile Include="status.c" />
     <ClCompile Include="versus.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h" />
     <ClInclude Include="map.h" />
+    <ClInclude Include="my_common.h" />
     <ClInclude Include="rlutil.h" />
     <ClInclude Include="status.h" />
     <ClInclude Include="versus.h" />
